@@ -88,30 +88,47 @@ class GAIABenchmark(BaseBenchmark):
         print(f"Successfully dumped tasks to {save_path}")
 
 
-    def load(self, force_download=False):
+    def load(self, force_download=False, local_path=None):
         r"""Load the GAIA dataset.
 
         Args:
             force_download (bool, optional): Whether to
                 force download the data.
+            local_path (str, optional): Path to local GAIA dataset.
+                If provided, will load from this path instead of downloading.
         """
-        if force_download:
-            logger.info("Force downloading data.")
-            self.download()
-
-        # Define validation and test directories
-        valid_dir = self.data_dir / "2023/validation"
-        test_dir = self.data_dir / "2023/test"
-
-        # Check if directories exist; if not, download the data
-        if not valid_dir.is_dir() or not test_dir.is_dir():
-            logger.info("Data not found. Downloading data.")
-            self.download()
+        if local_path:
+            logger.info(f"Loading GAIA dataset from local path: {local_path}")
+            local_path = Path(local_path)
+            valid_dir = local_path / "2023/validation"
+            test_dir = local_path / "2023/test"
+        else:
+            # Define validation and test directories
+            valid_dir = self.data_dir / "2023/validation"
+            test_dir = self.data_dir / "2023/test"
+            
+            # Check if directories exist; if not, download the data
+            if not valid_dir.is_dir() or not test_dir.is_dir():
+                if force_download:
+                    logger.info("Force downloading data.")
+                logger.info("Data not found. Downloading data.")
+                try:
+                    self.download()
+                except Exception as e:
+                    logger.error(f"Failed to download data: {e}")
+                    logger.warning("You may need to login to Hugging Face or request access to the dataset.")
+                    logger.warning("Alternatively, provide a local_path to the dataset")
+                    return self
 
         # Load metadata for both validation and test datasets
         for path, label in zip([valid_dir, test_dir], ["valid", "test"]):
             self._data[label] = []
-            with open(path / "metadata.jsonl", "r") as f:
+            metadata_path = path / "metadata.jsonl"
+            if not metadata_path.exists():
+                logger.warning(f"Metadata file not found at {metadata_path}")
+                continue
+            
+            with open(metadata_path, "r") as f:
                 lines = f.readlines()
                 for line in lines:
                     data = json.loads(line)

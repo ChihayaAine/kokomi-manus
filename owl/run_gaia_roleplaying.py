@@ -24,7 +24,7 @@ from utils import GAIABenchmark
 # Configuration
 LEVEL = 1
 SAVE_RESULT = True
-test_idx = [0]
+test_idx = []  # 运行所有任务
 
 
 def main():
@@ -93,10 +93,12 @@ def main():
     assistant_agent_kwargs = {"model": models["assistant"], "tools": tools}
 
     # Initialize benchmark
+    local_gaia_path = "/Users/weilei/Desktop/llmeva/gaia/owl/owl/huggingface.co/datasets/gaia-benchmark/GAIA"
     benchmark = GAIABenchmark(
         data_dir="data/gaia",
         save_to=f"results/result.json"
     )
+    benchmark.load(local_path=local_gaia_path)
 
     # Print benchmark information
     print(f"Number of validation examples: {len(benchmark.valid)}")
